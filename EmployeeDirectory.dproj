@@ -1,0 +1,39 @@
+unit  unit_employee_directory;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls;
+
+type
+  Tfrmemployeedirectory = class(TForm)
+    btnproducts: TButton;
+    btnNewtable: TButton;
+    procedure btnNewtableClick(Sender: TObject);
+    procedure btnproductsClick(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  frmemployeedirectory: Tfrmemployeedirectory;
+
+implementation
+uses unit_employee_database, unit_searchpage;
+
+{$R *.dfm}
+
+procedure Tfrmemployeedirectory.btnNewtableClick(Sender: TObject);
+begin
+frmcreatedatabase.Show;
+end;
+
+procedure Tfrmemployeedirectory.btnproductsClick(Sender: TObject);
+begin
+frmsearchpage.Show;
+end;
+
+end.

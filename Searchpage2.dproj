@@ -1,0 +1,315 @@
+unit unit_searchpage2;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Grids,
+  FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.UI.Intf,
+  FireDAC.Phys.Intf, FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async,
+  FireDAC.Phys, FireDAC.Phys.SQLite, FireDAC.Phys.SQLiteDef,
+  FireDAC.Stan.ExprFuncs, FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf,
+  FireDAC.DApt, System.Rtti, System.Bindings.Outputs, Vcl.Bind.Editors,
+  Data.Bind.EngExt, Vcl.Bind.DBEngExt, Data.Bind.Components, Data.Bind.DBScope,
+  Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client, FireDAC.VCLUI.Wait,
+  FireDAC.Comp.UI, Vcl.ComCtrls, Vcl.ExtCtrls, unit_productinfo,
+  Vcl.Imaging.pngimage, system.regularexpressions,validationunit;
+
+type
+  TFrmcustomerpage = class(TForm)
+    FDConnection1: TFDConnection;
+    FDGUIxWaitCursor1: TFDGUIxWaitCursor;
+    listbox1: TListBox;
+    edtSearchBar: TEdit;
+    Image1: TImage;
+    clickbutton: TButton;
+    btnstuck: TButton;
+    groupfilter1: TRadioGroup;
+    RadioButton1: TRadioButton;
+
+    procedure test(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure Image1Click(Sender: TObject);
+    procedure box(Sender: TObject);
+    procedure listbox(Sender: TObject);
+    procedure btnstuckClick(Sender: TObject);
+    procedure radiomaleClick(Sender: TObject);
+    procedure Filter(Sender: TObject);
+
+
+
+
+  private
+    { Private declarations }
+  public
+
+
+  procedure populatelistbox;
+  procedure working;
+  procedure populateradiobox;
+
+
+    { Public declarations }
+  end;
+
+var
+
+  con:tfdconnection;
+  query:tfdquery;
+  frmcustomerpage : tfrmcustomerpage;
+
+implementation
+
+uses unit_searchpage;
+
+{$R *.dfm}
+
+
+
+procedure tfrmcustomerpage.working;
+begin
+ con:=tfdconnection.Create(nil);
+    query:=tfdquery.Create(con);
+    con.LoginPrompt:=false;
+       con.open('DriverID=SQLite;Database='+Dir+'/Stock_V5;');
+       query.connection:=con;
+ query.SQL.Text := 'Select * From Stock Order by ProductID';
+query.Open;
+query.first;
+end;
+
+
+   procedure TFrmcustomerpage.Image1Click(Sender: TObject);
+begin
+frmproduct.show;
+end;
+procedure TFrmcustomerpage.listbox(Sender: TObject);
+var
+sql:string;
+con:tfdconnection;
+querysearch:tfdquery;
+productID,Product_Name,Price, productname, Product_Image,Quantity,product_location,product_description: string;
+index : integer;
+begin
+con:=tfdconnection.Create(nil);
+querysearch:=tfdquery.Create(con);
+querysearch.Connection:=con;
+con.DriverName:='SQL';
+con.Open('DriverID=SQLite;Database='+Dir+'/Stock_V5;');
+querysearch.Connection:=con;
+index:= listbox1.ItemIndex;
+showmessage (inttostr(Index));
+Productname:= listbox1.Items[index];
+showmessage(productname);
+querysearch.sql.Text:='SELECT * FROM Stock  WHERE Product_Name = '''  + productname + '''';
+querysearch.Open;
+querysearch.First;
+ frmproduct.show;
+  frmproduct.edtproductname.Text:= productname;
+ frmproduct.edtproductprice.Text:= ('£') +  querysearch.FieldByName('Price').AsString;
+ frmproduct.productquantity.Text:= querysearch.FieldByName('Quantity').AsString;
+ frmproduct.edtproductlocation.Text:= querysearch.FieldByName('Product_Location').AsString;
+ frmproduct.edtgender.Text:= querysearch.FieldByName('Age_Gender').AsString;
+ frmproduct.edtdescription.Text:= querysearch.FieldByName('Product_Description').AsString;
+  frmproduct.edtid.Text:= querysearch.FieldByName('ProductID').AsString;
+  showmessage(querysearch.SQL.Text);
+end;
+
+
+procedure tfrmcustomerpage.populatelistbox;
+   var
+   i:integer;
+   begin
+   while not query.eof do
+   begin
+
+       listbox1.Items.Add(query.FieldByName('Product_Name').asstring);
+       query.Next;
+   end;
+   end;
+
+
+
+procedure TFrmcustomerpage.radiomaleClick(Sender: TObject);
+var
+con  :tfdconnection;
+sql :String;
+malesearch:tfdquery;
+x:integer;
+malename : string;
+begin
+con:=tfdconnection.Create(nil);
+malesearch:=tfdquery.Create(con);
+malesearch.Connection:=con;
+con.DriverName:='SQL';
+con.Open('DriverID=SQLite;Database='+Dir+'/Stock_V5;');
+malesearch.Connection:=con;
+malesearch.sql.Text:='SELECT * FROM Stock WHERE Age_Gender = "Men"';
+showmessage(malesearch.SQL.Text);
+ malesearch.Open();
+ malesearch.RecordCount;
+ x:=malesearch.RecordCount;
+ showmessage(inttostr(x));
+malesearch.first;
+listbox1.Clear;
+while not malesearch.Eof do
+begin
+malename:=malesearch.FieldByName('Product_Name').AsString;
+listbox1.Items.Add(malename);
+malesearch.Next;
+end;
+end;
+
+procedure TFrmcustomerpage.box(Sender: TObject);
+var
+sql:string;
+con:tfdconnection;
+querysearch:tfdquery;
+productID,Product_Name,Price, Product_Image,Quantity,product_location,product_description: string;
+begin
+con:=tfdconnection.Create(nil);
+querysearch:=tfdquery.Create(con);
+querysearch.Connection:=con;
+con.DriverName:='SQL';
+con.Open('DriverID=SQLite;Database='+Dir+'/Stock_V5;');
+querysearch.Connection:=con;
+querysearch.sql.Text:='SELECT * FROM Stock  WHERE Product_Name = '''  + edtsearchbar.Text + '''';
+querysearch.Open;
+querysearch.First;
+ frmproduct.show;
+  frmproduct.edtproductname.Text:= edtsearchbar.Text;
+ frmproduct.edtproductprice.Text:= ('£') +  querysearch.FieldByName('Price').AsString;
+ frmproduct.productquantity.Text:= querysearch.FieldByName('Quantity').AsString;
+  showmessage(querysearch.SQL.Text);
+end;
+
+procedure TFrmcustomerpage.btnstuckClick(Sender: TObject);
+begin
+showmessage('To proceed, search for an item using the thin box and click on the item you are looking for');
+end;
+
+ {malesearch.Open();
+ malesearch.RecordCount;
+ x:=malesearch.RecordCount;
+ showmessage(inttostr(x));
+malesearch.first;
+listbox1.Clear;
+while not malesearch.Eof do
+begin
+malename:=malesearch.FieldByName('Product_Name').AsString;
+listbox1.Items.Add(malename);
+malesearch.Next;
+end;
+end;}
+
+
+
+procedure TFrmcustomerpage.Filter(Sender: TObject);
+var
+con  :tfdconnection;
+sql :String;
+filterquery:tfdquery;
+x:integer;
+male,female,children: string;
+begin
+con:=tfdconnection.Create(nil);
+filterquery:=tfdquery.Create(con);
+filterquery.Connection:=con;
+con.DriverName:='SQL';
+con.Open('DriverID=SQLite;Database='+Dir+'/Stock_V5;');
+filterquery.Connection:=con;
+filterquery.sql.Text:='SELECT * FROM Stock WHERE Age_Gender = ''' + groupfilter1.Items[groupfilter1.ItemIndex] + ''''  ;
+showmessage(filterquery.SQL.Text);
+ filterquery.Open();
+ filterquery.RecordCount;
+ x:=filterquery.RecordCount;
+ showmessage(inttostr(x));
+
+filterquery.first;
+listbox1.Clear;
+while not filterquery.Eof do
+begin
+male:=filterquery.FieldByName('Product_Name').AsString;
+female:=filterquery.FieldByName('Product_Name').AsString;
+children:=filterquery.FieldByName('Product_Name').AsString;
+listbox1.Items.Add(male);
+filterquery.Next;
+end;
+end;
+
+
+
+
+
+procedure tfrmcustomerpage.populateradiobox;
+begin
+ groupfilter1.Items.Add('Men');
+ groupfilter1.Items.Add('Women');
+ groupfilter1.Items.Add('Kids');
+end;
+
+
+
+procedure TFrmcustomerpage.FormCreate(Sender: TObject);
+begin
+ populateradiobox;
+Working;
+PopulateListBox;
+end;
+
+  function validprod (str:string) :boolean;
+var valid:boolean;
+i:integer;
+letter:string;
+begin
+  valid :=true;
+  for i := 1 to length(str) do
+  begin
+   letter:=uppercase(str[i]);
+   if (letter < 'A') or (letter > 'Z') then
+   valid:=false;
+
+  end;
+  result:=valid;
+end;
+
+
+
+
+procedure TFrmcustomerpage.test(Sender: TObject);
+var
+sql,rob:string;
+con:tfdconnection;
+searchquery:tfdquery;
+productID,Product_Name,Price, Product_Image,Quantity,product_location,product_description: string;
+i,j,row : integer;
+regex:tregex;
+begin
+if not (validprod(edtSearchBar.Text)) then
+begin
+showmessage('Error. Letters only Please');
+rob :=edtsearchbar.Text;
+delete(rob,length(edtSearchBar.Text),1);
+edtSearchBar.Text:=rob;
+edtSearchBar.SetFocus;
+end;
+{if not regex.IsMatch(edtsearchbar.Text, ' then}
+listbox1.Clear;
+con:=tfdconnection.Create(nil);
+searchquery:=tfdquery.Create(con);
+searchquery.Connection:=con;
+con.DriverName:='SQL';
+con.Open('DriverID=SQLite;Database='+Dir+'/Stock_V5;');
+searchquery.sql.Text:='SELECT * FROM Stock  WHERE Product_Name Like '''  +'%' + edtsearchbar.Text + '%''Order By Product_Name' ;
+//searchquery.ParamByName('PN').AsString := edtsearchbar.Text;
+searchquery.open;
+searchquery.First;
+while not searchquery.Eof do
+begin
+   Product_Name:=searchquery.FieldByName('Product_Name').AsString;
+  listbox1.Items.Add(Product_Name);
+      searchquery.Next;
+end;
+
+end;
+end.

@@ -1,0 +1,178 @@
+unit Unit_productinfo;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, FireDAC.Stan.Intf,
+  FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf,
+  FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys,
+  Data.DB, FireDAC.Comp.Client, Vcl.ComCtrls, unit_homepage, Vcl.ExtCtrls;
+
+type
+  Tfrmproduct = class(TForm)
+    edtproductname: TEdit;
+    edtproductprice: TEdit;
+    productquantity: TEdit;
+    edtproductlocation: TEdit;
+    edtdescription: TEdit;
+    customername: TEdit;
+    Btnorder: TButton;
+    FDConnection1: TFDConnection;
+    DateTimePicker1: TDateTimePicker;
+    edtid: TEdit;
+    lblcustid: TLabel;
+    edtgender: TEdit;
+    edttext: TEdit;
+    edtquantitydemanded: TEdit;
+    edtq: TEdit;
+    edtpricetag: TEdit;
+    Image1: TImage;
+    edtpricetotal: TEdit;
+    procedure BtnorderClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure change(Sender: TObject);
+    function primarykey (table,key:string) : integer ;
+    procedure insertcustname;
+    procedure pricechange(Sender: TObject);
+
+  private
+    { Private declarations }
+  public
+
+    { Public declarations }
+  end;
+
+var
+  dir: string;
+  frmproduct: Tfrmproduct;
+
+implementation
+
+{$R *.dfm}
+
+procedure Tfrmproduct.BtnorderClick(Sender: TObject);
+var
+  con: TFDConnection;
+  insertquery: tfdquery;
+  val1: integer;
+begin
+  try
+    insertcustname;
+    val1 := random(500);
+
+    con := TFDConnection.Create(nil);
+    insertquery := tfdquery.Create(con);
+    insertquery.Connection := con;
+    con.DriverName := 'SQL';
+    con.Open('DriverID=SQLite;Database=' + dir + '/Stock_V5;');
+
+    ShowMessage('Current directory = ' + dir);
+   Insertquery.SQL.Text:= 'Insert Into Order5(OrderID, ProductID,  CustID, Date, Quantity)'
+   + 'VALUES (:OID, :PID, :CID, :D, :Q)';
+   insertquery.ParamByName('OID').Asinteger := primarykey('Order5','OrderID');
+   insertquery.ParamByName('PID').Asinteger := strtoint(edtid.Text);
+   insertquery.ParamByName('CID').Asinteger := primarykey ('Customer', 'CustomerID')- 1;
+   insertquery.ParamByName('D').AsDate := (DateTimePicker1.Date);
+    insertquery.ParamByName('Q').Asinteger := strtoint(edtq.Text);
+   insertquery.ExecSQL;
+
+
+
+
+
+    {insertquery.SQL.Text:= 'SELECT * FROM Customer, Order2 WHERE Customer.CustomerID=Order2.CustomerID'; }
+  except
+    con.Rollback;
+    raise
+  end;
+  con.Commit;
+  insertquery.Close;
+end;
+
+procedure Tfrmproduct.insertcustname;
+var
+  con: TFDConnection;
+  addquery: tfdquery;
+begin
+  try
+    con := TFDConnection.Create(nil);
+    addquery := tfdquery.Create(con);
+    addquery.Connection := con;
+    con.DriverName := 'SQL';
+    con.Open('DriverID=SQLite;Database=' + dir + '/Stock_V5;');
+    addquery.SQL.Text := 'INSERT INTO Customer(CustomerID, Customer_Name) ' +
+      'VALUES (:CI, :CN)';
+    ShowMessage('1');
+    addquery.ParamByName('CI').AsInteger := primarykey('Customer','CustomerID');
+    ShowMessage('2');
+    addquery.ParamByName('CN').AsString := (frmproduct.customername.Text);
+    ShowMessage('3');
+    addquery.ExecSQL;
+  except
+    con.Rollback;
+    raise;
+  end;
+  con.Commit;
+  addquery.Close;
+end;
+
+procedure Tfrmproduct.pricechange(Sender: TObject);
+ var
+ result:integer;
+begin
+{result := (edtproductprice * edtq);
+edtpricetotal.Text:= '£' + result;  }
+end;
+
+function Tfrmproduct.primarykey (table,key:string) : integer ;
+var
+  query: tfdquery;
+  con: TFDConnection;
+begin
+  con := TFDConnection.Create(nil);
+  query := tfdquery.Create(con);
+  query.Connection := con;
+  con.DriverName := 'SQL';
+  con.Open('DriverID=SQLite;Database=' + dir + '/Stock_V5;');
+  query.Connection := con;
+  query.SQL.Text := 'Select ' + Key + ' FROM ' + table + ' Order BY '+  Key;
+  showmessage (query.SQL.Text);
+  query.Open();
+  query.Last;
+  if query.RecordCount = 0 then
+  begin
+    result := 1;
+    exit;
+  end;
+  result := query.FieldByName(Key).AsInteger + 1;
+  con.Commit;
+  query.Close;
+end;
+
+procedure Tfrmproduct.change(Sender: TObject);
+begin
+  { edtproductprice.Text:=edtproductprice.Text*productquantity.Text; }
+end;
+
+procedure ordernumber;
+var
+  basicfile: textfile;
+  filename: string;
+  ordernum: integer;
+begin
+  assignfile(basicfile, filename);
+  rewrite(basicfile);
+  writeln(basicfile, ordernum);
+  closefile(basicfile);
+
+end;
+
+procedure Tfrmproduct.FormCreate(Sender: TObject);
+begin
+  dir := getcurrentdir;
+  DateTimePicker1.Date := now;
+end;
+
+end.

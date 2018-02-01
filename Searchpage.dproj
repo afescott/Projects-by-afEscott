@@ -1,0 +1,588 @@
+unit Unit_searchpage;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, FireDac.DApt, FireDac.Phys.SQLite,
+  FireDac.Phys.SQLiteDef,
+  FireDac.Stan.Intf, FireDac.Stan.Option, FireDac.Stan.Error, FireDac.UI.Intf,
+  FireDac.Phys.Intf, FireDac.Stan.Def, FireDac.Stan.Pool, FireDac.Stan.Async,
+  FireDac.Phys, FireDac.VCLUI.Wait, Vcl.Grids, FireDac.Comp.UI, Data.DB,
+  FireDac.Comp.Client, Vcl.StdCtrls, Vcl.ExtCtrls, System.RegularExpressions,
+  Data.SqlExpr;
+
+type
+  TFrmsearchpage = class(TForm)
+    edtsearchbar: TEdit;
+    sgdproduct: TStringGrid;
+    btnsearchclick: TButton;
+    btnupdate: TButton;
+    edtid: TEdit;
+    Edit1: TEdit;
+    Edit2: TEdit;
+    edtname: TEdit;
+    Edit3: TEdit;
+    edtprice: TEdit;
+    Edit4: TEdit;
+    edtimage: TEdit;
+    Edit5: TEdit;
+    edtquantity: TEdit;
+    Edit6: TEdit;
+    edtlocation: TEdit;
+    Edit7: TEdit;
+    edtdescription: TEdit;
+    btndelete: TButton;
+    btnadd: TButton;
+    GroupBox1: TGroupBox;
+    FDManager1: TFDManager;
+    btnload: TButton;
+    edtdatabasename: TEdit;
+    Button2: TButton;
+    labelload: TLabel;
+    FDConnection1: TFDConnection;
+    lbltablename: TLabel;
+    Button1: TButton;
+    procedure FormCreate(Sender: TObject);
+    procedure btnsearchclickClick(Sender: TObject);
+    procedure btnaddClick(Sender: TObject);
+    procedure btnupdateClick(Sender: TObject);
+    procedure BtndeleteClick(Sender: TObject);
+    procedure btnloadClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+
+  private
+    { Private declarations }
+  public
+    function insertrow: string;
+    procedure importdata;
+    procedure validation;
+    procedure updatetable;
+
+    { Public declarations }
+  end;
+
+var
+  Frmsearchpage: TFrmsearchpage;
+  query: tfdquery;
+  dir: string;
+  tableExist: boolean;
+  loadquery: tfdquery;
+
+implementation
+
+uses unit_login, unit_searchpage2, unit_add;
+
+{$R *.dfm}
+
+procedure showdata;
+var
+  i: integer;
+  j: integer;
+begin
+  for i := 1 to 5 do
+  begin
+    for j := 1 to 5 do
+  end;
+end;
+
+{ procedure LoadFile(const FileName: TFileName; Grid: TStringGrid);
+  var
+  LogFile: TStrings;
+  i: Integer;
+  begin
+  LogFile := TStringList.Create;
+  try
+  LogFile.LoadFromFile('Stock_V5');
+  sgdproduct.RowCount := LogFile.Count;
+  for i := 0 to Pred(LogFile.Count) do
+  Grid.Rows[i].CommaText := LogFile[i];
+  finally
+  LogFile.Free;
+  end;
+  end; }
+
+procedure TFrmsearchpage.BtndeleteClick(Sender: TObject);
+var
+  deletequery: tfdquery;
+  con: TFDConnection;
+begin
+  if tableExist then
+  begin
+    con := TFDConnection.Create(nil);
+    deletequery := tfdquery.Create(con);
+    deletequery.Connection := con;
+    con.DriverName := 'SQL';
+    try
+      con.Open('DriverID=SQLite;Database=' + dir + '/Stock_V5;');
+      deletequery.SQL.Text := 'Delete From ' + edtdatabasename.Text + ' Where '
+        + loadquery.Fields[0].DisplayName + '= :PI';
+      showmessage(deletequery.SQL.Text);
+      deletequery.ParamByName('PI').AsString := edtid.Text;
+      deletequery.ExecSQL;
+      showmessage('Data Deleted');
+      updatetable;
+    except
+      con.Rollback;
+      raise;
+    end;
+    con.Commit;
+    deletequery.Close;
+  end
+  else
+  begin
+    con := TFDConnection.Create(nil);
+    deletequery := tfdquery.Create(con);
+    deletequery.Connection := con;
+    con.DriverName := 'SQL';
+    try
+      con.Open('DriverID=SQLite;Database=' + dir + '/Stock_V5;');
+      deletequery.SQL.Text := 'Delete From Stock ' + 'Where ProductID = :PI';
+      deletequery.ParamByName('PI').AsString := edtid.Text;
+      deletequery.ExecSQL;
+      showmessage('Data Deleted');
+      importdata;
+    except
+      con.Rollback;
+      raise;
+    end;
+    con.Commit;
+    deletequery.Close;
+  end;
+end;
+
+
+
+
+
+
+
+procedure TFrmsearchpage.btnsearchclickClick(Sender: TObject);
+var
+  SQL: string;
+  con: TFDConnection;
+  searchquery: tfdquery;
+
+  productID, Product_Name, Price, Product_Image, Quantity, product_location,
+    product_description: string;
+
+  i, j, row: integer;
+begin
+  for i := 0 to sgdproduct.RowCount do
+    for j := 0 to sgdproduct.ColCount do
+      sgdproduct.Cells[i, j] := '';
+  con := TFDConnection.Create(nil);
+  searchquery := tfdquery.Create(con);
+  searchquery.Connection := con;
+  con.DriverName := 'SQL';
+  con.Open('DriverID=SQLite;Database=' + dir + '/Stock_V5;');
+  searchquery.SQL.Text := 'SELECT * FROM Stock  WHERE Product_Name = ''' +
+    edtsearchbar.Text + '''';
+  showmessage(searchquery.SQL.Text);
+  // searchquery.ParamByName('PN').AsString := edtsearchbar.Text;
+  showmessage(searchquery.SQL.Text);
+  searchquery.Open;
+  searchquery.First;
+  showmessage(searchquery.FieldByName('Product_Name').AsString);
+  sgdproduct.ColCount := 7;
+  sgdproduct.FixedCols := 0;
+  for i := 0 to 3 do
+    sgdproduct.colwidths[i] := 100;
+  sgdproduct.colwidths[i] := 100;
+  sgdproduct.Cells[0, 0] := 'ProductID';
+  sgdproduct.Cells[1, 0] := 'Product_Name';
+  sgdproduct.Cells[2, 0] := 'Price';
+  sgdproduct.Cells[3, 0] := 'Quantity';
+  sgdproduct.Cells[4, 0] := 'Product_Image';
+  sgdproduct.Cells[5, 0] := 'Product_Location';
+  sgdproduct.Cells[6, 0] := 'Product_Description';
+  row := 1;
+  while not searchquery.Eof do
+  begin
+    productID := searchquery.FieldByName('ProductID').AsString;
+    Product_Name := searchquery.FieldByName('Product_Name').AsString;
+    Price := searchquery.FieldByName('Price').AsString;
+    Product_Image := searchquery.FieldByName('Quantity').AsString;
+    Quantity := searchquery.FieldByName('Product_Image').AsString;
+    product_location := searchquery.FieldByName('Product_Location').AsString;
+    product_description := searchquery.FieldByName
+      ('Product_Description').AsString;
+    sgdproduct.Cells[0, row] := productID;
+    sgdproduct.Cells[1, row] := Product_Name;
+    sgdproduct.Cells[2, row] := Price;
+    sgdproduct.Cells[3, row] := Quantity;
+    sgdproduct.Cells[4, row] := Product_Image;
+    sgdproduct.Cells[5, row] := product_location;
+    sgdproduct.Cells[6, row] := product_description;
+    row := row + 1;
+    searchquery.Next;
+  end;
+end;
+
+procedure TFrmsearchpage.btnupdateClick(Sender: TObject);
+var
+  editquery: tfdquery;
+  con: TFDConnection;
+  regex: tregex;
+begin
+  validation;
+  con := TFDConnection.Create(nil);
+  editquery := tfdquery.Create(con);
+  editquery.Connection := con;
+  con.DriverName := 'SQL';
+  // fdconnection1.StartTransaction;
+  try
+    con.Open('DriverID=SQLite;Database=' + dir + '/Stock_V5;');
+    editquery.SQL.Text := 'UPDATE Stock SET Product_Name = :PN, ' +
+      'Price = :PR, Product_Image = :PImage, Quantity = :Q, Product_Location = :PL, Product_Description = :PD '
+      + 'WHERE ProductID = :PI';
+    editquery.ParamByName('PI').Asinteger := strtoint(edtid.Text);
+    editquery.ParamByName('PN').AsString := edtname.Text;
+    editquery.ParamByName('PR').Asinteger := strtoint(edtprice.Text);
+    editquery.ParamByName('PImage').AsString := edtimage.Text;
+    editquery.ParamByName('Q').Asinteger := strtoint(edtquantity.Text);
+    editquery.ParamByName('PL').AsString := edtlocation.Text;
+    editquery.ParamByName('PD').AsString := edtdescription.Text;
+    showmessage(editquery.SQL.Text);
+    editquery.ExecSQL;
+    showmessage('Data updated');
+    importdata;
+  except
+    ;
+    con.Rollback;
+    raise;
+  end;
+  con.Commit;
+  editquery.Close;
+end;
+
+procedure TFrmsearchpage.Button1Click(Sender: TObject);
+begin
+  updatetable;
+end;
+
+procedure TFrmsearchpage.validation;
+var
+  regex: tregex;
+begin
+  if not regex.IsMatch(edtprice.Text, '(\d)+|(\d)+\.(\d)+') then
+  begin
+    edtprice.Text := '';
+    edtprice.SetFocus;
+    showmessage('You have not provided a real number for the price');
+  end
+  else
+
+end;
+
+procedure TFrmsearchpage.btnaddClick(Sender: TObject);
+var
+  addquery: tfdquery;
+  con: TFDConnection;
+  regex: tregex;
+
+
+begin
+ {if tableExist then
+  begin
+    con := TFDConnection.Create(nil);
+    addquery := tfdquery.Create(con);
+    addquery.Connection := con;
+    con.DriverName := 'SQL';
+    try
+      con.Open('DriverID=SQLite;Database=' + dir + '/Stock_V5;');
+      addquery.SQL.Text := 'Insert into ' + edtdatabasename.Text + '(';
+      showmessage(addquery.SQL.Text);
+      addquery.ParamByName('PI').AsString := edtid.Text;
+      addquery.ExecSQL;
+      showmessage('Data Added');
+      updatetable;
+    except
+      con.Rollback;
+      raise;
+    end;
+    con.Commit;
+    addquery.Close;
+  end
+  else }
+  validation;
+  if (strtoint(edtprice.Text)<=0) or (strtoint(edtprice.Text)>=100)  then
+  showmessage('The price must remain within 0 and 100 pounds')
+  else
+  con := TFDConnection.Create(nil);
+  addquery := tfdquery.Create(con);
+  addquery.Connection := con;
+  con.DriverName := 'SQL';
+  try
+    con.Open('DriverID=SQLite;Database=' + dir + '/Stock_V5;');
+    // FDConnection1.starttransaction;
+    addquery.SQL.Text :=
+      'INSERT INTO Stock(ProductID,Product_Name,Price,Product_Image,Quantity,Product_Location,Product_Description)'
+      + 'VALUES (:PI,:PN,:PR,:PImage,:Q,:PL,:PD)';
+    addquery.ParamByName('PI').Asinteger := strtoint(edtid.Text);
+    addquery.ParamByName('PN').AsString := edtname.Text;
+    addquery.ParamByName('PR').AsFloat := strtofloat(edtprice.Text);
+    addquery.ParamByName('PImage').AsString := edtimage.Text;
+    addquery.ParamByName('Q').Asinteger := strtoint(edtquantity.Text);
+    addquery.ParamByName('PL').AsString := edtlocation.Text;
+    addquery.ParamByName('PD').AsString := edtdescription.Text;
+    showmessage('3');
+    addquery.ExecSQL;
+    showmessage('4');
+    showmessage('Data Added');
+    importdata;
+    edtid.Text := '';
+    edtname.Text := '';
+    edtprice.Text := '';
+    edtimage.Text := '';
+    edtquantity.Text := '';
+    edtlocation.Text := '';
+    edtdescription.Text := '';
+  except
+    con.Rollback;
+    raise;
+  end;
+  con.Commit;
+  addquery.Close;
+end;
+
+function TFrmsearchpage.insertrow: string;
+var
+  con: TFDConnection;
+  query: tfdquery;
+  productID, newproductid: integer;
+  SQL: string;
+begin
+  con := TFDConnection.Create(nil);
+  query := tfdquery.Create(con);
+  con.LoginPrompt := false;
+  con.Open('DriverID=SQLite;Database=' + dir + '/Stock_V5;');
+  con.DriverName := 'SQL';
+  query.SQL.Text := 'SELECT * FROM Stock  ORDER BY ProductID Order By DESC';
+  productID := query.FieldByName('ProductID').Asinteger + 1;
+  query.SQL.Text := SQL;
+  query.Open;
+  query.Next;
+  newproductid := productID;
+
+end;
+
+procedure TFrmsearchpage.FormCreate(Sender: TObject);
+begin
+  dir := getcurrentdir;
+  importdata;
+end;
+
+procedure TFrmsearchpage.btnloadClick(Sender: TObject);
+var
+  con: TFDConnection;
+  altquery: tfdquery;
+  i: integer;
+  j, f: integer;
+  row: integer;
+  col1,temp, col2, col3, col4, col5, col6, col7: string;
+  str: TStringList;
+begin
+  tableExist := false;
+  con := TFDConnection.Create(nil);
+  loadquery := tfdquery.Create(con);
+  loadquery.Connection := con;
+  con.DriverName := 'SQL';
+  con.Open('DriverID=SQLite;Database=' + dir + '/Stock_V5;');
+  loadquery.SQL.Text := 'Select * FROM sqlite_master Where name = ''' +
+    edtdatabasename.Text + ''' AND type=''table''';
+  loadquery.Open;
+  loadquery.RecordCount;
+  if loadquery.RecordCount = 0 then
+    showmessage('Doesnt exist')
+  else
+  begin
+    showmessage('exists');
+
+
+    tableExist := true;
+
+    loadquery.SQL.Text := 'SELECT * FROM ' + edtdatabasename.Text;
+    loadquery.Open;
+    lbltablename.Caption := edtdatabasename.Text;
+    sgdproduct.RowCount := 0;
+    sgdproduct.RowCount := loadquery.RecordCount + 1;
+    showmessage(loadquery.SQL.Text);
+    sgdproduct.ColCount := loadquery.FieldCount;
+    sgdproduct.FixedCols := 0;
+    for i := 1 to loadquery.RecordCount do
+      for j := 0 to sgdproduct.ColCount do
+        sgdproduct.Cells[i, j] := '';
+    for i := 0 to loadquery.FieldCount - 1 do
+    begin
+      sgdproduct.Cells[i, 0] := loadquery.Fields[i].DisplayName;
+    end;
+        edit1.text:='';
+        edit2.text:='';
+        edit3.text:='';
+        edit4.text:='';
+        edit5.text:='';
+        edit6.text:='';
+     for f := 0 to loadquery.fieldcount -1 do
+       begin
+
+        temp:=loadquery.Fields[f].DisplayName;
+         case f of
+         0: Edit1.Text:= temp;
+         1: Edit2.Text:= temp;
+         2: Edit3.Text:= temp;
+         3: Edit4.Text:= temp;
+         4: Edit5.Text:= temp;
+         5: Edit6.Text:= temp;
+         6: Edit7.Text:= temp;
+         end;
+       end;
+         for f := loadquery.fieldcount to 6 do
+       begin
+         case f of
+         0: Edit1.Enabled:= false;
+         1: Edit2.Enabled:= false;
+         2: Edit3.Enabled:= false;
+         3: Edit4.Enabled:= false;
+         4: Edit5.Enabled:= false;
+         5: Edit6.Enabled:= false;
+         6: Edit7.Enabled:= false;
+         end;
+       end;
+    i := 0;
+    row := 1;
+    while not loadquery.Eof do
+    begin
+      { Col1:=query.FieldList[loadquery.Fields[i].DisplayName].AsString; }
+      col1 := loadquery.Fields[0].AsString;
+      col2 := loadquery.Fields[1].AsString;
+      col3 := loadquery.Fields[2].AsString;
+      { Col4:=query.FieldByName('Col4').AsString     ;
+        Col5:=query.FieldByName('Col5').AsString      ;
+        Col6:=query.FieldByName('Col6').AsString        ;
+        col7:=query.FieldByName('Col7').AsString };
+      sgdproduct.Cells[0, row] := col1;
+      sgdproduct.Cells[1, row] := col2;
+      sgdproduct.Cells[2, row] := col3;
+      sgdproduct.Cells[3, row] := col4;
+      sgdproduct.Cells[4, row] := col5;
+      sgdproduct.Cells[5, row] := col6;
+      sgdproduct.Cells[6, row] := col7;
+      row := row + 1;
+      i := i + 1;
+      loadquery.Next;
+    end;
+  end;
+end;
+
+procedure TFrmsearchpage.updatetable;
+var
+  col1, col2, col3, col4, col5, col6, col7: string;
+
+  i, j, row: integer;
+  con: TFDConnection;
+  importquery: tfdquery;
+begin
+  con := TFDConnection.Create(nil);
+  importquery := tfdquery.Create(con);
+  importquery.Connection := con;
+  con.DriverName := 'SQL';
+  con.Open('DriverID=SQLite;Database=' + dir + '/Stock_V5;');
+  importquery.SQL.Text := 'SELECT * FROM ' + lbltablename.Caption;
+  showmessage(importquery.SQL.Text);
+  importquery.Open;
+  importquery.First;
+  sgdproduct.RowCount := 0;
+  sgdproduct.RowCount := importquery.RecordCount + 1;
+  showmessage(importquery.SQL.Text);
+  sgdproduct.ColCount := importquery.FieldCount;
+  sgdproduct.FixedCols := 0;
+  for i := 1 to importquery.RecordCount do
+    for j := 0 to sgdproduct.ColCount do
+      sgdproduct.Cells[i, j] := '';
+  for i := 0 to importquery.FieldCount - 1 do
+  begin
+    sgdproduct.Cells[i, 0] := importquery.Fields[i].DisplayName;
+  end;
+  i := 0;
+  row := 1;
+  while not importquery.Eof do
+  begin
+    { Col1:=query.FieldList[loadquery.Fields[i].DisplayName].AsString; }
+    col1 := importquery.Fields[0].AsString;
+    col2 := importquery.Fields[1].AsString;
+    col3 := importquery.Fields[2].AsString;
+    { Col4:=query.FieldByName('Col4').AsString     ;
+      Col5:=query.FieldByName('Col5').AsString      ;
+      Col6:=query.FieldByName('Col6').AsString        ;
+      col7:=query.FieldByName('Col7').AsString };
+    sgdproduct.Cells[0, row] := col1;
+    sgdproduct.Cells[1, row] := col2;
+    sgdproduct.Cells[2, row] := col3;
+    { sgdproduct.Cells[3,row]:=Col4;
+      sgdproduct.Cells[4,row]:=Col5;
+      sgdproduct.Cells[5,row]:=Col6;
+      sgdproduct.Cells[6,row]:=Col7; }
+    row := row + 1;
+    i := i + 1;
+    importquery.Next;
+  end;
+end;
+
+procedure TFrmsearchpage.importdata;
+var
+  con: TFDConnection;
+
+  productID: String;
+  Product_Name: String;
+  Price: String;
+  Product_Image: String;
+  Quantity: String;
+  product_location: string;
+  product_description: string;
+  row: integer;
+  i: integer;
+begin
+  con := TFDConnection.Create(nil);
+  query := tfdquery.Create(con);
+  con.LoginPrompt := false;
+  con.Open('DriverID=SQLite;Database=' + dir + '/Stock_V5;');
+  query.Connection := con;
+  query.SQL.Text := 'SELECT * FROM Stock  ORDER BY ProductID';
+  query.Open;
+  query.First;
+  sgdproduct.ColCount := 7;
+  sgdproduct.FixedCols := 0;
+  for i := 0 to 3 do
+    sgdproduct.colwidths[i] := 100;
+  sgdproduct.Cells[0, 0] := 'ProductID';
+  sgdproduct.Cells[1, 0] := 'Product_Name';
+  sgdproduct.Cells[2, 0] := 'Price';
+  sgdproduct.Cells[3, 0] := 'Quantity';
+  sgdproduct.Cells[4, 0] := 'Product_Image';
+  sgdproduct.Cells[5, 0] := 'Product_Location';
+  sgdproduct.Cells[6, 0] := 'Product_Description';
+  row := 1;
+  while not query.Eof do
+  begin
+    productID := query.FieldByName('ProductID').AsString;
+    Product_Name := query.FieldByName('Product_Name').AsString;
+    Price := query.FieldByName('Price').AsString;
+    Product_Image := query.FieldByName('Quantity').AsString;
+    Quantity := query.FieldByName('Product_Image').AsString;
+    product_location := query.FieldByName('Product_Location').AsString;
+    product_description := query.FieldByName('Product_Description').AsString;
+    sgdproduct.Cells[0, row] := productID;
+    sgdproduct.Cells[1, row] := Product_Name;
+    sgdproduct.Cells[2, row] := Price;
+    sgdproduct.Cells[3, row] := Quantity;
+    sgdproduct.Cells[4, row] := Product_Image;
+    sgdproduct.Cells[5, row] := product_location;
+    sgdproduct.Cells[6, row] := product_description;
+    row := row + 1;
+    query.Next;
+  end;
+end;
+
+end.
