@@ -1,0 +1,30 @@
+
+
+
+
+<?php
+
+
+Class Controller_Review {
+	
+public function insertRating {
+	
+
+
+
+	
+}
+
+
+
+
+}
+
+
+
+
+
+
+
+
+?>
